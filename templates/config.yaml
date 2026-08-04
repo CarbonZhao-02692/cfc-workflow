@@ -1,0 +1,25 @@
+# <项目名> — 配置文件
+# 通信参数与寄存器映射定义
+
+# 数据库配置
+# backend: sqlite → 本地开发 | timescaledb → 生产部署
+database:
+  backend: timescaledb
+  dsn: "postgresql://postgres:postgres@localhost:5432/<db_name>"
+  # sqlite 模式（开发时使用）：
+  # backend: sqlite
+  # path: "data/sensor_data.db"
+
+<设备>:
+  host: <ip>
+  port: <port>
+
+<协议>:
+  <topic 配置>
+
+# 控制参数
+<control>:
+  setpoint: <目标值>
+  Kp: 2.0
+  Ki: 0.1
+  Kd: 0
