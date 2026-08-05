@@ -1,137 +1,115 @@
-# CFC Workflow — 工业控制系统全流程开发方案
+# CFC Workflow — 工业控制系统全流程开发方案（AI 智能体 Skill）
 
-一套 **AI 智能体可严格遵循的通用全流程详细开发方案**，覆盖从项目初期调查问卷到产品打包发布的完整闭环。
+一套供 **AI 智能体（Claude Code）严格遵循的通用全流程详细开发方案**：从项目初期调查问卷到产品打包发布的完整闭环，且**每次更新都伴随全面测试套件验证**。
 
-> **核心理念**：先想清楚「**开发什么样的项目**」（产品画像），再按 8 阶段严格执行（如何开发）。
-> 重写自燃烧风机控制项目（combustion-fan-control）的开发实践，已提炼为不绑定具体项目的通用方案。
+> 从燃烧风机控制项目（combustion-fan-control，含 Modbus TCP PLC 通信、MQTT 远程、PID 控制、双后端数据库、全面审计测试套件）的实践提炼，已剥离为不绑定具体项目的通用方案。
 
 ---
 
-## 一、这个 skill 解决什么
+## ✨ 核心特性
 
-| 问题 | 解法 |
+| 特性 | 说明 |
 |------|------|
-| 新项目不知从哪开始 | 阶段 0 问卷 → 用领域专家答案填平未知 |
-| 开发中跑偏/返工 | 产品画像先行 + 每阶段有明确输入/输出/验证 |
-| 文档与代码脱节 | 版本目录归档 + 功能-only 铁律 |
-| 发布混乱 | 版本规则 + 发布链每步提交 + 逐项验证 |
-| 产物膨胀 | 阶段 7 清理（同一主版本保留最新两个） |
+| **产品画像先行** | 先回答「开发什么样的项目」（为谁做/解决什么/运行在哪/如何验证），再谈如何开发 |
+| **5 子 skill 分工** | cfc-start / cfc-update / cfc-test / cfc-release / cfc-doc，主 SKILL.md 路由 |
+| **测试驱动更新** | 每次更新先 issue 化需求 → 评估影响 → 计划 → 实现 → 测试循环直到全绿 |
+| **全面测试套件** | 条款矩阵 + 黄金固件（trace_id 贯穿）+ 双后端共生 + 存量门禁 + 真变异抽查 |
+| **交叉验证冲突提问** | 不同文档对同一参数标准不一致 → 不猜测，直接向用户提问裁决 |
+| **Skill 调用硬性指标** | 强制调用 tdd / planning-with-files-zh / code-review / verification-before-completion 等 |
+| **issue 化原则** | 所有问题/改进拆解本地 issue，逐项修复 |
 
-## 二、使用方式
+---
 
-### 场景路由
+## 🧩 子 skills
 
-| 场景 | 入口 |
-|------|------|
-| **新项目** | 阶段 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7（全流程） |
-| **已有项目新增功能** | 阶段 2 → 4 → 5 → 6 → 7（产品画像已建立可跳 0/1） |
-| **Bug 修复** | 阶段 3b → 6（修订号发布，跳过文档） |
-| **快速参考** | 读 [SKILL.md](SKILL.md) 二章 8 阶段表定位 → 读对应 [prompts/](prompts/) |
+### cfc-start — 从零创建项目
+初始化 + 从零（或近零）编写项目。
+- **前期问卷含 mqtt 变量表 / 参数范围·意义表模板**（要求用户填写，作为权威标准源）
+- TDD 垂直切片实现
+- **结束必调 cfc-test** 生成完整全量测试套件并测试、修复
 
-### 三句话启动
+### cfc-update — 更新维护程序
+修复 bug、新增或优化功能。
+- **先调 cfc-test issue 化用户需求** → 评估影响（新增/修改哪些测试脚本）→ 制定计划
+- 程序更新与修复 → 新增/修改测试 → 针对性测试 → 测出问题再 issue 化 → **循环直到全部通过**
 
-```bash
-# 1. 安装（软链接到用户 skills）
-ln -s /d/PythonProjects/ClaudeCodePyProject/cfc-skill ~/.claude/skills/cfc-workflow
+### cfc-test — 全面测试及优化套件
+生成**完整全面的全量程序-产品性测试套件**（不仅测程序错误，还查产品性/功能性）。
+- **条款矩阵**：权威文档程序化抽取 → clauses + canonical_spec 同源；期望值只能从文档推导
+- **黄金固件**：trace_id 贯穿 + 边界突变检测 + 幂等去重
+- **双后端共生**：同种子 SQLite+TS 规范化比对 + 差异注册表
+- **存量门禁**：现有测试全量纳入 + 隔离契约 + 真变异抽查
+- **冲突→用户提问**：decisions_log 裁决闭环
 
-# 2. 新项目：先读产品画像模板，再进阶段 0
-cat references/PRODUCT_BLUEPRINT.md prompts/phase-0-survey.md
+### cfc-release — 发布产品包
+完成更新后发布：bump 版本 → handoff → 文档（cfc-doc）→ 本地 git → ISCC 打包 → DeployPack → 验证。
 
-# 3. 每阶段完成 → 更新 task_plan.md/progress.md（planning-with-files-zh 钩子）
+### cfc-doc — 文档更新
+功能变化 → 更新手册并编译 PDF。
+- **铁律：不写 bug 修复**（手册只写用户可见功能）
+
+---
+
+## 🔄 流程关系
+
+```
+cfc-start ──→ cfc-test（强制：生成套件+测试+修复）──→ cfc-release
+cfc-update ─→ cfc-test（issue化→循环测试修复）────→ cfc-release
+cfc-release ─→ cfc-doc（次/主版本时）
 ```
 
-## 三、目录结构
+---
+
+## 📦 目录结构
 
 ```
 cfc-skill/
-├── SKILL.md                    # ★ 总路由：产品画像 + 8 阶段全流程 + 10 条范式 + 外部 skills
-├── README.md                   # 本文件（使用说明）
-├── prompts/                    # 阶段指导（按场景分门别类，9 份）
-│   ├── phase-0-survey.md       #   需求调研问卷（设计/问答/分析）
-│   ├── phase-1-orient.md       #   领域建模（CONTEXT/PRD/ADR）
-│   ├── phase-2-feat.md         #   TDD 垂直切片实现
-│   ├── phase-3-review.md       #   代码审查质量门禁
-│   ├── phase-3b-fix.md         #   Bug 修复（复现→根因→回归）
-│   ├── phase-4-doc.md          #   文档同步（功能-only 铁律）
-│   ├── phase-5-version.md      #   版本管理（次/修订判定）
-│   ├── phase-6-release.md      #   发布链（7 步严格顺序）
-│   └── phase-7-cleanup.md      #   产物清理（保留最新 N）
-├── templates/                  # 文档/代码模板（可套用，10 份）
-│   ├── questionnaire.md        #   调查问卷模板
-│   ├── findings.md             #   研究发现
-│   ├── PRD.md                  #   产品需求文档
-│   ├── CONTEXT.md              #   领域术语表
-│   ├── handoff.md              #   会话交接
-│   ├── spec.md                 #   产品规格书
-│   ├── test_manual.md          #   测试手册
-│   ├── deploy_manual.md        #   部署手册
-│   ├── setup.iss               #   Inno Setup 安装脚本
-│   └── config.yaml             #   系统配置
-├── scripts/                    # 可执行脚本（直接运行，4 份）
-│   ├── gen_questionnaire.py    #   问卷 → PDF + XLSX 审查表
-│   ├── build_docs.py           #   md → tex → PDF（pandoc+xelatex 中文）
-│   ├── release.py              #   发布链检查（版本/zip/exe 验证）
-│   └── clean_artifacts.py      #   产物清理（按主版本保留最新 N）
-└── references/                 # 参考资料
-    ├── PRODUCT_BLUEPRINT.md          # 原型项目完整产品画像（开发什么样）
-    ├── ASK_MATT_INTEGRATION.md       # ask-matt 集成说明
-    └── PLANNING_WITH_FILES_ZH.md     # planning-with-files-zh 集成说明
+├── SKILL.md              # 主路由（prompt 判定流程 + skill 调用硬性指标）
+├── cfc-start/            # 从零创建（含 mqtt 变量表/参数意义表模板）
+├── cfc-update/           # 更新维护（issue化循环）
+├── cfc-test/             # 全面测试套件（条款矩阵/黄金固件/双后端/存量门禁）
+├── cfc-release/          # 发布（bump→handoff→doc→打包）
+├── cfc-doc/              # 文档（不写 bug 修复）
+├── prompts/              # 阶段详细指导（9 份：问卷→清理）
+├── templates/            # 文档模板（含 mqtt 变量表/参数意义表/issue 模板）
+├── scripts/              # 可执行脚本（问卷生成/文档编译/发布检查/清理）
+└── references/           # 产品蓝图/审计套件参考/ask-matt 集成/planning 集成
 ```
 
-## 四、核心设计
+---
 
-### 1. 产品画像先行（第 0 层）
-任何开发开始前回答 4 问：
-- **为谁做**？→ 目标用户/现场环境
-- **解决什么**？→ 核心痛点/能力清单
-- **运行在哪**？→ 硬件/OS/网络约束（决定离线/在线策略）
-- **如何验证**？→ 验收标准/测试门禁
-
-→ 本项目画像见 [references/PRODUCT_BLUEPRINT.md](references/PRODUCT_BLUEPRINT.md)
-
-### 2. 8 阶段全流程（第 1 层）
-```
-调研(0) → 建模(1) → 实现(2) → 审查(3) → 文档(4) → 版本(5) → 发布(6) → 清理(7)
-```
-阶段可跳过（已建立画像），不可乱序。每阶段：目标 → 输入 → 执行 → 输出 → 外部 skill → 模板/脚本。
-
-### 3. 10 条开发范式（第 2 层）
-TDD 垂直切片 / 每次修改必提交 / 测试门禁 exit 0 / 不可变性 / 显式错误处理 /
-功能-only 文档 / 版本驱动发布 / 离线优先（国内源）/ 中文 UTF-8 无 BOM / 上下文管理
-
-### 4. 主动调用外部 skills
-| skill | 用途 |
-|-------|------|
-| `/ask-matt` 系列（grill-with-docs / grill-me / to-prd / to-issues / implement） | 需求访谈 → PRD → issue → TDD 实现 |
-| `/planning-with-files-zh` | 磁盘工作记忆（task_plan/findings/progress 钩子） |
-| `/tdd` | 红-绿循环参考 |
-| `/code-review` `/security-review` `/grilling` | 质量门禁 |
-| `/systematic-debugging` | 复杂 bug 根因排查 |
-| `/verification-before-completion` | 发布前逐项验证 |
-
-## 五、从原型项目提炼的通用要义
-
-| 原型实践 | 通用要义 |
-|---------|---------|
-| 电气工程师 74 题问卷 | 问卷=章节化 + 必要度 + 「对开发的意义」 |
-| TDD 每切片 red→green→commit | 垂直切片禁止水平切片 |
-| 文档只写功能（bug 不入册） | 手册=用户契约，内部机制不入册 |
-| 版本 x.y.z + beta | 次版本=用户可见，修订=内部 |
-| 发布链 7 步每步提交 | 版本驱动，产物 gitignore |
-| 离线部署 + 国内源 | 离线优先，大依赖在线用国内镜像 |
-| 产物清理保留最新两个 | 控制膨胀，定期归档 |
-
-## 六、安装与维护
+## 🚀 安装
 
 ```bash
-# 安装（软链接，改动即时生效）
-ln -s /d/PythonProjects/ClaudeCodePyProject/cfc-skill ~/.claude/skills/cfc-workflow
-
-# 验证
-ls ~/.claude/skills/cfc-workflow/SKILL.md
-
-# 更新（本仓库 git 管理）
-cd /d/PythonProjects/ClaudeCodePyProject/cfc-skill && git pull
+# 软链接到用户 skills（改动即时生效）
+ln -s /path/to/cfc-skill ~/.claude/skills/cfc-workflow
 ```
 
-> 本 skill 目录本身有独立 git 仓库，所有修改按 Conventional Commits 提交。
+## 🛠 使用
+
+| 场景 | 入口 |
+|------|------|
+| 新项目 | `cfc-start` → `cfc-test` → `cfc-release` |
+| 更新/修 bug/新功能 | `cfc-update`（内部循环 cfc-test）→ `cfc-release` |
+| 只测不改 | `cfc-test` |
+| 只发布 | `cfc-release` |
+| 只文档 | `cfc-doc` |
+
+## 📚 前置依赖 skills
+
+- `/tdd` — RED→GREEN 垂直切片
+- `/planning-with-files-zh` — 磁盘工作记忆（task_plan/progress 钩子）
+- `/code-review` `/security-review` — 质量门禁
+- `/verification-before-completion` — 发布前逐项验证
+- `/dispatching-parallel-agents` — 复杂任务并行
+- `/systematic-debugging` — 复杂 bug 根因排查
+
+## 📄 参考实现
+
+完整可工作的审计测试套件实证：`references/AUDIT_SUITE_REFERENCE.md`（combustion-fan-control tests_audit/，27 audit + 510 存量全绿，含条款抽取/冲突检测/trace_id 幂等/真变异等关键代码模式）。
+
+---
+
+## 📜 许可
+
+MIT — 自由使用、修改、分发（保留出处）。
