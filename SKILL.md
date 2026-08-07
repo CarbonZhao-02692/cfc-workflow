@@ -116,3 +116,42 @@ cfc-skill/
 ### 测试范式
 - 新增模块必须 TDD（red→green→commit）
 - fake system 注入真实组件（FanControlManager 等）做契约测试
+
+## 更多经验（2026-08-07 v1.6.x 固化）
+
+### S7 直连 PLC（snap7）
+- S7-200 SMART 必须 `set_connection_type(3)`（缺此设置读空/失败，rack/slot 不适用）
+- V 区 = Area.DB + db=1；手动 socket 协议 param_len=0x10 仍读空 → 必须 ct3
+- 手写 S7 PDU 排查极耗时 → 优先用 snap7 库 + ct3
+
+### 图表四者统一（单一配置源）
+- 总览/趋势图/简报/PDF 图表共用 `chart_config.py`（TREND_SERIES：field/label/color/unit/axis）
+- 1#/2# 相同参数合并同图，**每图 ≤4 条曲线**
+- 后端 matplotlib 与前端 Chart.js 都从同一配置取 → 改一处四处对齐
+
+### 统一关机流程（所有入口共用）
+- 前端按钮/托盘右键/命令行 Ctrl+C/关窗口(SIGBREAK) → 同一 `system.stop()`
+- stop 开头 `announce_shutdown()`（模块级标志 + 实例标志双保险）→ SSE 推 shutdown → 前端关闭态
+- SSE 周期 5s→1s（广播 1s 内送达，消除关闭延迟）
+- 托盘先广播再 stop（不依赖时序）
+
+### 一键启停（实验确认，勿凭猜测）
+- 开机 = Mode=2（平台）；停机 = Mode=0 + On=0（Mode=0 需 On=0 配合）
+- 前端按钮逻辑必须对照实验 findings，不臆造
+
+### 兜底机制
+- 关键操作加兜底守卫：停机后频率不降 → 强制 Mode2+写0 → 仍失败报警提示检查 PLC 旋钮
+
+### 打包（安装后可直接运行）
+- **设置文件必须打包**（mqtt_settings/variables/rules/ui_settings/link_settings/runtime.json）
+- 否则安装后无配置无法运行
+
+### 前端教训
+- **模板字符串 `${...}` 只能写在 `<script>` 内**，写 HTML 里会原样显示乱码
+- 报警"弹出"用 ctypes MessageBox（前台必弹，异步线程），winotify toast 可能被系统静音
+- 未处理报警用导航角标（10s 自动刷新）
+
+### 测试范式补充
+- 全量测试排除 PG 依赖文件（test_database/test_startup/test_database_ts）避免挂起
+- TS 后端查询前 rollback 清 aborted 事务（autocommit=False 下查询抛错会连锁失败）
+- 批量 patch 后必须验证无递归/无污染（sed/python 替换易误插）
